@@ -10,7 +10,6 @@ from matplotlib.axes import Axes
 
 from MDAnalysis.analysis.base import AnalysisBase
 from MDAnalysis import Universe
-from MDAnalysis import transformations as trans
 from MDAnalysis.lib.distances import minimize_vectors, capped_distance
 
 from ase.cell import Cell
@@ -174,18 +173,14 @@ class WaterOrientation(AnalysisBase):
 
     Parameters
     ----------
-    xyz : str
-        Path to the input XYZ trajectory file.
-    cell : ase.cell.Cell
-        Simulation cell object defining periodic boundaries.
+    universe : Universe
+        MDAnalysis Universe containing the topology and trajectory
     surf1 : np.ndarray
         Atom indices defining the first surface.
     surf2 : np.ndarray
         Atom indices defining the second surface.
     **kwargs : dict, optional
         Keyword arguments:
-        - `dt` : float
-            Time step between frames in the trajectory. Default is 1.0 ps.
         - `verbose` : bool
             Verbosity level for AnalysisBase.
         - `oh_cutoff` : float
@@ -229,24 +224,16 @@ class WaterOrientation(AnalysisBase):
 
     def __init__(
         self,
-        xyz: str,
-        cell: Cell,
+        universe: Universe,
         surf1: np.ndarray,
         surf2: np.ndarray,
         **kwargs,
     ):
         logger.info("Performing water density and orientation analysis")
 
-        # Setup Universe
-        universe = Universe(
-            xyz,
-            transformations=trans.boxdimensions.set_dimensions(cell.cellpar()),
-            dt=kwargs.get("dt", 1.0),  # Might be useful in the future (dynamics)
-        )
-
         # Save required arguments
-        self.cell = cell
-        logger.info("Cell: %s", str(cell))
+        self.cell = Cell.new(universe.dimensions)
+        logger.info("Cell: %s", str(self.cell))
         self.surf1_ag = universe.select_atoms(*[f"index {i}" for i in surf1])
         self.surf2_ag = universe.select_atoms(*[f"index {i}" for i in surf2])
         logger.info("Surface 1 atom indices: %s", str(surf1))
